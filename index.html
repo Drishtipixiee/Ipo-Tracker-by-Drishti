@@ -1,0 +1,227 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>IPO & Startup News Tracker</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+            h1 { color: #0056b3; text-align: center; margin-bottom: 30px; }
+            .container { max-width: 1200px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .section { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #fcfcfc; }
+            .section h2 { margin-top: 0; color: #007bff; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+            .event-list { list-style: none; padding: 0; }
+            .event-item { margin-bottom: 15px; padding: 10px; border-left: 5px solid #007bff; background-color: #e9f7ff; border-radius: 4px; }
+            .event-item.news { border-left-color: #28a745; background-color: #e6ffe6; }
+            .event-item.ipo { border-left-color: #ffc107; background-color: #fff8e6; }
+            .event-item h3 { margin: 0 0 5px 0; color: #0056b3; font-size: 1.2em; }
+            .event-item p { margin: 0; font-size: 0.9em; line-height: 1.4; }
+            .event-item p strong { color: #555; }
+            .event-item a { color: #007bff; text-decoration: none; }
+            .event-item a:hover { text-decoration: underline; }
+            .refresh-button { display: block; width: 200px; margin: 20px auto; padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; text-align: center; font-size: 1em; }
+            .refresh-button:hover { background-color: #0056b3; }
+            .last-updated { text-align: center; font-size: 0.8em; color: #777; margin-top: 20px; }
+            .loading-indicator { display: none; text-align: center; margin-top: 20px; font-weight: bold; }
+            .date-group { margin-bottom: 25px; border-bottom: 1px dashed #ccc; padding-bottom: 15px; }
+            .date-group:last-child { border-bottom: none; }
+            .date-group h3 { background-color: #e0e0e0; padding: 8px 15px; border-radius: 5px; margin-top: 0; margin-bottom: 15px; color: #444; }
+            .filter-controls { text-align: center; margin-bottom: 20px; }
+            .filter-controls button { padding: 8px 15px; margin: 0 5px; background-color: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; }
+            .filter-controls button.active { background-color: #007bff; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Indian IPO & Startup News Tracker</h1>
+            <p class="last-updated">Last Updated: <span id="last-updated-time">Loading...</span></p>
+            <div class="filter-controls">
+                <button class="filter-btn active" data-filter="all">All Events</button>
+                <button class="filter-btn" data-filter="ipos">IPOs</button>
+                <button class="filter-btn" data-filter="news">News</button>
+                <button class="filter-btn" data-filter="upcoming">Upcoming IPOs</button>
+                <button class="filter-btn" data-filter="live">Live IPOs</button>
+                <button class="filter-btn" data-filter="listed">Listed IPOs</button>
+                <button class="filter-btn" data-filter="fundraise">Fundraise News</button>
+                <button class="filter-btn" data-filter="acquisition">Acquisition News</button>
+            </div>
+            <div id="events-container">
+                <p class="loading-indicator" style="display: block;">Loading data...</p>
+            </div>
+        </div>
+
+        <script>
+            const eventsContainer = document.getElementById('events-container');
+            const lastUpdatedTime = document.getElementById('last-updated-time');
+            let allEventsData = {}; // Store all fetched data
+            let currentFilter = 'all';
+
+            function renderEvents(filter = 'all') {
+                eventsContainer.innerHTML = ''; // Clear existing content
+                lastUpdatedTime.textContent = new Date().toLocaleString();
+
+                const sortedDates = Object.keys(allEventsData).sort().reverse(); // Newest dates first
+
+                if (sortedDates.length === 0) {
+                    eventsContainer.innerHTML = '<p style="text-align: center;">No data available yet. Please wait for the first scrape to complete.</p>';
+                    return;
+                }
+
+                sortedDates.forEach(date => {
+                    const dateData = allEventsData[date];
+                    let hasVisibleEvents = false;
+                    const dateGroup = document.createElement('div');
+                    dateGroup.className = 'date-group';
+                    dateGroup.innerHTML = `<h3>${date}</h3><ul class="event-list"></ul>`;
+                    const ul = dateGroup.querySelector('ul');
+
+                    // Render IPOs
+                    if (dateData.ipos && dateData.ipos.length > 0) {
+                        dateData.ipos.forEach(ipo => {
+                            const isUpcoming = ipo.status === 'Upcoming';
+                            const isLive = ipo.status === 'Live';
+                            const isListed = ipo.status === 'Listed';
+
+                            let showIpo = false;
+                            if (filter === 'all' || filter === 'ipos') {
+                                showIpo = true;
+                            } else if (filter === 'upcoming' && isUpcoming) {
+                                showIpo = true;
+                            } else if (filter === 'live' && isLive) {
+                                showIpo = true;
+                            } else if (filter === 'listed' && isListed) {
+                                showIpo = true;
+                            }
+
+                            if (showIpo) {
+                                hasVisibleEvents = true;
+                                const li = document.createElement('li');
+                                li.className = 'event-item ipo';
+                                li.innerHTML = `
+                                    <h3>${ipo.company} <span style="font-size: 0.8em; color: gray;">(${ipo.status})</span></h3>
+                                    <p><strong>Open:</strong> ${ipo.open_date} | <strong>Close:</strong> ${ipo.close_date}</p>
+                                    <p><strong>Listing:</strong> ${ipo.listing_date || 'N.A.'}</p>
+                                    <p><strong>Price Band:</strong> ${ipo.price_band} | <strong>Lot Size:</strong> ${ipo.lot_size}</p>
+                                    <p><strong>GMP:</strong> ${ipo.gmp} | <strong>Subscription:</strong> ${ipo.subscription}</p>
+                                    <p><strong>Location:</strong> ${ipo.location} | <strong>Source:</strong> ${ipo.source}</p>
+                                `;
+                                ul.appendChild(li);
+                            }
+                        });
+                    }
+
+                    // Render News
+                    if (dateData.news && dateData.news.length > 0) {
+                        dateData.news.forEach(news => {
+                            let showNews = false;
+                            if (filter === 'all' || filter === 'news') {
+                                showNews = true;
+                            } else if (filter === 'fundraise' && news.type === 'Fundraise') {
+                                showNews = true;
+                            } else if (filter === 'acquisition' && news.type === 'Acquisition') {
+                                showNews = true;
+                            }
+
+                            if (showNews) {
+                                hasVisibleEvents = true;
+                                const li = document.createElement('li');
+                                li.className = 'event-item news';
+                                li.innerHTML = `
+                                    <h3>${news.title} <span style="font-size: 0.8em; color: gray;">(${news.type})</span></h3>
+                                    <p><strong>Company:</strong> ${news.company} | <strong>Location:</strong> ${news.location}</p>
+                                    <p><strong>Source:</strong> ${news.source} | <a href="${news.link}" target="_blank">Read More</a></p>
+                                `;
+                                ul.appendChild(li);
+                            }
+                        });
+                    }
+
+                    if (hasVisibleEvents) {
+                        eventsContainer.appendChild(dateGroup);
+                    }
+                });
+
+                if (!eventsContainer.hasChildNodes()) {
+                    eventsContainer.innerHTML = '<p style="text-align: center;">No events matching the current filter.</p>';
+                }
+            }
+
+            // Fetch initial data
+            fetch('/history')
+                .then(response => response.json())
+                .then(data => {
+                    allEventsData = data;
+                    renderEvents(currentFilter);
+                })
+                .catch(error => {
+                    console.error('Error fetching initial history:', error);
+                    eventsContainer.innerHTML = '<p style="text-align: center; color: red;">Failed to load data.</p>';
+                });
+
+            // SSE Event Listener
+            const eventSource = new EventSource('/stream');
+            eventSource.onmessage = function(event) {
+                const eventData = JSON.parse(event.data);
+                console.log('SSE update:', eventData);
+
+                const date = eventData.date;
+                const type = eventData.type; // 'ipos' or 'news'
+                const item = eventData.data;
+
+                // Ensure the date entry exists as a dict
+                if (!allEventsData[date] || typeof allEventsData[date] !== 'object') {
+                    allEventsData[date] = { ipos: [], news: [] };
+                }
+                if (!allEventsData[date][type]) {
+                     allEventsData[date][type] = [];
+                }
+
+                let updated = false;
+                // Check if item already exists and update it
+                if (type === 'ipos') {
+                    for (let i = 0; i < allEventsData[date].ipos.length; i++) {
+                        // Match IPOs by company and open_date for uniqueness
+                        if (allEventsData[date].ipos[i].company === item.company && 
+                            allEventsData[date].ipos[i].open_date === item.open_date) {
+                            allEventsData[date].ipos[i] = item; // Replace with updated item
+                            updated = true;
+                            break;
+                        }
+                    }
+                } else if (type === 'news') {
+                    for (let i = 0; i < allEventsData[date].news.length; i++) {
+                        // Match News by title and link for uniqueness
+                        if (allEventsData[date].news[i].title === item.title && 
+                            allEventsData[date].news[i].link === item.link) {
+                            allEventsData[date].news[i] = item; // Replace with updated item
+                            updated = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!updated) {
+                    allEventsData[date][type].push(item); // Add new item if not found
+                }
+                
+                renderEvents(currentFilter); // Re-render the display with updated data
+            };
+
+            eventSource.onerror = function(err) {
+                console.error('EventSource failed:', err);
+                eventSource.close();
+            };
+
+            // Filter button logic
+            document.querySelectorAll('.filter-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.dataset.filter;
+                    renderEvents(currentFilter);
+                });
+            });
+
+        </script>
+    </body>
+    </html>
