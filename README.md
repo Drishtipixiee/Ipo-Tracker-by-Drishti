@@ -1,5 +1,8 @@
 # IPO Tracker by Drishti
-A real-time IPO tracker built with Python and REST APIs to monitor upcoming and active public offerings.
+
+## About the Project
+IPO Tracker by Drishti is a simple web application that helps users track upcoming, ongoing, and listed IPOs.  
+The platform provides quick access to IPO details such as company name, issue size, price band, and listing status, helping users stay updated with the latest IPO opportunities.
 
 ## Features
 * Real-time data tracking.
