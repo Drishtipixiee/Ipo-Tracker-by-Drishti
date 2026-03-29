@@ -7,3 +7,4 @@ The platform provides quick access to IPO details such as company name, issue si
 ## Features
 * Real-time data tracking.
 * Built using Python.
+YOLO 
