@@ -8,3 +8,4 @@ The platform provides quick access to IPO details such as company name, issue si
 * Real-time data tracking.
 * Built using Python.
 YOLO 
+PairBadge 
