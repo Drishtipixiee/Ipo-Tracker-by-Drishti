@@ -1,4 +1,4 @@
-# IPO Tracker by Drishti
+# IPO Tracker 
 
 ## About the Project
 IPO Tracker by Drishti is a simple web application that helps users track upcoming, ongoing, and listed IPOs.  
